@@ -1,0 +1,13 @@
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>.
+@prefix owl: <http://www.w3.org/2002/07/owl#>.
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#>.
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
+@prefix sch: <http://schema.org/>.
+@prefix car: <http://cars.com/>.
+
+<http://cars.com/001> a car:Car;
+    car:plate "001" ;
+    car:color "blue" ;
+    car:fabricationYear "2000" ;
+    car:brand "Toyota" ;
+    car:value "20000" .
