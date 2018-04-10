@@ -19,31 +19,43 @@ public class Linker {
 
     public Model convertLiteralToResource(Model targetModel, Model... backgroundModel) {
         Model convertedModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
-        Map<String, Set<Resource>> mapLabelResourceUri = new HashMap<>();
+        Map<String, Set<Resource>> index = this.createIndex(backgroundModel);
+        convertedModel = this.convertResource(targetModel, index);
+        return convertedModel;
+    }
 
+    public Map<String, Set<Resource>> createIndex(Model... backgroundModel) {
+        Map<String, Set<Resource>> mapLabelResourceUri = new HashMap<>();
         for (Model model : backgroundModel) {
             List<Resource> backgroundSubjects = model.listSubjects().toList();
             for (Resource resource : backgroundSubjects) {
                 if (resource.hasProperty(RDFS.label)) {
-                    String labelValue = resource.getProperty(RDFS.label).getObject().asLiteral().toString().toLowerCase();
-                    Set<Resource> set = mapLabelResourceUri.get(labelValue);
-                    if (set == null) {
-                        mapLabelResourceUri.put(labelValue, set = new HashSet<Resource>());
+                    List<Statement> labelValues = resource.listProperties(RDFS.label).toList();
+                    for (Statement statement : labelValues) {
+                        String labelValue = statement.getObject().asLiteral().toString().toLowerCase();
+                        Set<Resource> set = mapLabelResourceUri.get(labelValue);
+                        if (set == null) {
+                            mapLabelResourceUri.put(labelValue, set = new HashSet<Resource>());
+                        }
+                        set.add(resource);
                     }
-                    set.add(resource);
                 }
             }
         }
+        return mapLabelResourceUri;
+    }
 
-        List<Resource> targetSubjects = targetModel.listSubjects().toList();
+    public Model convertResource(Model resourceModel, Map<String, Set<Resource>> backGroundResourceIndex) {
+        Model convertedModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
+        List<Resource> targetSubjects = resourceModel.listSubjects().toList();
         for (Resource resource : targetSubjects) {
             List<Statement> properties = resource.listProperties().toList();
             for (Statement statement : properties) {
                 RDFNode object = statement.getObject();
                 if (object.isLiteral()) {
                     String literalValue = object.asLiteral().toString().toLowerCase();
-                    if (mapLabelResourceUri.get(literalValue) != null) {
-                        List<Resource> backGroundResources = new ArrayList<>(mapLabelResourceUri.get(literalValue));
+                    if (backGroundResourceIndex.get(literalValue) != null) {
+                        List<Resource> backGroundResources = new ArrayList<>(backGroundResourceIndex.get(literalValue));
                         for (Resource backGroundResource : backGroundResources) {
                             convertedModel.add(statement.getSubject(), statement.getPredicate(), backGroundResource);
                         }
@@ -55,7 +67,6 @@ public class Linker {
                 }
             }
         }
-
         return convertedModel;
     }
 }

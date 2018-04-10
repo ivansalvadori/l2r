@@ -1,0 +1,25 @@
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>.
+@prefix owl: <http://www.w3.org/2002/07/owl#>.
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#>.
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
+@prefix sch: <http://schema.org/>.
+@prefix l2r: <http://l2r.com/>.
+
+<http://resource.com/001> a l2r:Resource;
+    rdfs:label "label1" ;
+    rdfs:label "label2" ;
+    rdfs:label "label3" ;
+    rdfs:label "labeln" . 
+    
+    
+ <http://resource.com/002> a l2r:Resource2;
+    l2r:sameProperty "label1".
+    
+ <http://resource.com/003> a l2r:Resource2;
+    l2r:sameProperty "label2".
+    
+ <http://resource.com/004> a l2r:Resource2;
+    l2r:sameProperty "label3".
+    
+ <http://resource.com/005> a l2r:Resource2;
+    l2r:sameProperty "labeln".
