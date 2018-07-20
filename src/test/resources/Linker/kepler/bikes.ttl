@@ -3,12 +3,9 @@
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#>.
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
 @prefix sch: <http://schema.org/>.
-@prefix car: <http://cars.com/>.
+@prefix onto: <http://onto.com/>.
 
-<http://cars.com/001> a car:Car;
-    car:plate "001" ;
-    car:color "blue" ;
-    car:fabricationYear "2000" ;
-    car:brand "Toyota" ;
-    car:value "20000" . 
+<http://bikes.com/001> a bike:Bike;
+    onto:color <http://example.com/Color/Blue> ;
+    onto:brand "Caloi" . 
 

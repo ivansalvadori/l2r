@@ -74,12 +74,15 @@ public class ConvertionTest {
     public void mustConsiderSeveralLabels() throws IOException {
 
         Model modelWithSeveralLabels = ModelFactory.createDefaultModel();
-        try (InputStream in = getClass().getResourceAsStream("/Linker/resourceWithSeveralLabels.ttl")) {
+        try (InputStream in = getClass().getResourceAsStream("/Linker/severalLabels/resourceWithSeveralLabels.ttl")) {
             RDFDataMgr.read(modelWithSeveralLabels, in, Lang.TURTLE);
         }
 
         Linker linker = new Linker();
         linker.createIndex(modelWithSeveralLabels);
+        
+        Model convertedModel = linker.convertLiteralToResource(modelWithSeveralLabels, modelWithSeveralLabels);
+        RDFDataMgr.write(System.out, convertedModel, Lang.N3);
 
         // Assert.assertTrue(caught);
         // Assert.assertEquals(old, model.size());
