@@ -5,7 +5,7 @@
 @prefix sch: <http://schema.org/>.
 @prefix onto: <http://onto.com/>.
 
-<http://bikes.com/001> a bike:Bike;
+<http://bikes.com/001> a onto:Bike;
     onto:color <http://example.com/Color/Blue> ;
     onto:brand "Caloi" . 
 
