@@ -61,9 +61,7 @@ public class ConvertionTest {
         }
 
         Linker linker = new Linker();
-        Map<String, Set<Resource>> index = linker.createIndex(colorModel, carsModel, rockbandsModel);
-
-        Model convertedModel = linker.convertResource(carsModel, index);
+        Model convertedModel = linker.convertResource(carsModel, colorModel, carsModel, rockbandsModel);
         RDFDataMgr.write(System.out, convertedModel, Lang.N3);
 
         // Assert.assertTrue(caught);

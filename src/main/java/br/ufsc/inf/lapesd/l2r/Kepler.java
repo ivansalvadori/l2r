@@ -16,15 +16,16 @@ import org.apache.jena.vocabulary.RDF;
 import org.apache.jena.vocabulary.RDFS;
 
 public class Kepler implements Contextualizable {
+	
+	private Map<Resource, Set<Resource>> contextualIndex = new HashMap<>();
 
 	@Override
-	public Set<Property> resolveContext(Property Property, Model... backgroundModel) {
-		this.createIndex(backgroundModel);
-		return null;
+	public Set<Resource> resolveContext(Resource property) {
+		return contextualIndex.get(property);
 	}
 
-	private Map<Resource, Set<Resource>> createIndex(Model... backgroundModel) {
-		Map<Resource, Set<Resource>> mapLabelResourceUri = new HashMap<>();
+	@Override
+	public void createIndex(Model... backgroundModel) {
 		for (Model model : backgroundModel) {
 			List<Resource> backgroundSubjects = model.listSubjects().toList();
 			for (Resource resource : backgroundSubjects) {
@@ -33,14 +34,15 @@ public class Kepler implements Contextualizable {
 					Property predicate = resourceProperty.getPredicate();
 					RDFNode object = resourceProperty.getObject();
 					if(object.isResource() && !predicate.equals(RDF.type)) {
-						System.out.println(predicate +": "+object);
 						Resource resourcePropertyRange = getResourcePropertyRange(object.asResource(), backgroundModel);
-						System.out.println(resourcePropertyRange);
+						if(this.contextualIndex.get(predicate) == null) {
+							contextualIndex.put(predicate, new HashSet<>());
+						}
+						this.contextualIndex.get(predicate).add(resourcePropertyRange);						
 					}
 				}
 			}
 		}
-		return mapLabelResourceUri;
 	}
 	
 	private Resource getResourcePropertyRange(Resource object, Model... backgroundModel) {
@@ -50,10 +52,8 @@ public class Kepler implements Contextualizable {
 			if(resource != null && propertyType!= null) {
 				return propertyType.getObject().asResource();
 			}
-		}
-		
+		}		
 		return null;
-		
 	}
 
 }

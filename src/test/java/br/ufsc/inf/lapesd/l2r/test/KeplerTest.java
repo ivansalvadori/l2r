@@ -2,19 +2,16 @@ package br.ufsc.inf.lapesd.l2r.test;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Map;
-import java.util.Set;
 
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
-import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFDataMgr;
 import org.junit.Test;
 
 import br.ufsc.inf.lapesd.l2r.Contextualizable;
-import br.ufsc.inf.lapesd.l2r.Linker;
 import br.ufsc.inf.lapesd.l2r.Kepler;
+import br.ufsc.inf.lapesd.l2r.Linker;
 
 public class KeplerTest {
 
@@ -42,10 +39,12 @@ public class KeplerTest {
         }
 
        Contextualizable contextualizable = new Kepler();
-       contextualizable.resolveContext(null, colorModel, carsModel, rockbandsModel, bikesModel);
+       contextualizable.createIndex(colorModel, carsModel, rockbandsModel, bikesModel);
 
-        // Assert.assertTrue(caught);
-        // Assert.assertEquals(old, model.size());
+       Linker linker = new Linker();
+       linker.setContextualizable(contextualizable);
+       Model convertedModel = linker.convertLiteralToResource(carsModel, colorModel, rockbandsModel);
+       RDFDataMgr.write(System.out, convertedModel, Lang.N3);
     }
 
 }
