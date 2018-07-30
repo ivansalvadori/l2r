@@ -19,62 +19,51 @@ import org.apache.jena.vocabulary.RDFS;
 public class Linker {
 
 	private Contextualizable contextualizable;
+	private Map<String, Set<Resource>> index = new HashMap<>();
 
-	public Model convertLiteralToResource(Model targetModel, Model... backgroundModel) {
-		Model convertedModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
-		convertedModel = this.convertResource(targetModel, backgroundModel);
-		return convertedModel;
+	public Model linkModel(Model model) {
+		this.createIndex(model);
+		Model linkedModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
+		linkedModel = this.convertLiteralToResource(model, model);
+		return linkedModel;
 	}
 
-	public Map<String, Set<Resource>> createIndex(Model... backgroundModel) {
-		Map<String, Set<Resource>> mapLabelResourceUri = new HashMap<>();
-		for (Model model : backgroundModel) {
-			List<Resource> backgroundSubjects = model.listSubjects().toList();
-			for (Resource resource : backgroundSubjects) {
-				if (resource.hasProperty(RDFS.label)) {
-					List<Statement> labelValues = resource.listProperties(RDFS.label).toList();
-					for (Statement statement : labelValues) {
-						String labelValue = statement.getObject().asLiteral().toString().toLowerCase();
-						Set<Resource> set = mapLabelResourceUri.get(labelValue);
-						if (set == null) {
-							mapLabelResourceUri.put(labelValue, set = new HashSet<Resource>());
-						}
-						set.add(resource);
-					}
-				}
-			}
-		}
-		return mapLabelResourceUri;
+	public Model linkModel(Model resourceModel, Model... backgroundModel) {
+		this.createIndex(backgroundModel);
+		Model linkedModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
+		linkedModel = this.convertLiteralToResource(resourceModel, backgroundModel);
+		return linkedModel;
 	}
 
-	public Model convertResource(Model resourceModel,  Model... backgroundModel) {
+	private Model convertLiteralToResource(Model resourceModel, Model... backgroundModel) {
 		Model convertedModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
-		
-		Map<String, Set<Resource>> index = this.createIndex(backgroundModel);
-		
+
 		List<Resource> targetSubjects = resourceModel.listSubjects().toList();
 		for (Resource resource : targetSubjects) {
 			List<Statement> properties = resource.listProperties().toList();
 			for (Statement statement : properties) {
 				RDFNode object = statement.getObject();
 				if (object.isLiteral()) {
+					if (statement.getPredicate().equals(RDFS.label)) {
+						convertedModel.add(statement);
+						continue;
+					}
 					String literalValue = object.asLiteral().toString().toLowerCase();
 					if (index.get(literalValue) != null) {
 						List<Resource> backGroundResources = new ArrayList<>(index.get(literalValue));
 						for (Resource backGroundResource : backGroundResources) {
-							if(this.contextualizable != null) {
+							if (this.contextualizable != null) {
+								contextualizable.createIndex(backgroundModel);
 								Set<Resource> resolvedContexts = this.contextualizable.resolveContext(statement.getPredicate());
-								if(resolvedContexts != null) {
-										boolean hasTheCorrectContext = hasTheCorrectContext(backGroundResource, resolvedContexts, backgroundModel);
-										if(hasTheCorrectContext) {
-											convertedModel.add(statement.getSubject(), statement.getPredicate(), backGroundResource);
-										}
-								}
-								else {
+								if (resolvedContexts != null) {
+									boolean hasTheCorrectContext = hasTheCorrectContext(backGroundResource, resolvedContexts, backgroundModel);
+									if (hasTheCorrectContext) {
+										convertedModel.add(statement.getSubject(), statement.getPredicate(), backGroundResource);
+									}
+								} else {
 									convertedModel.add(statement.getSubject(), statement.getPredicate(), backGroundResource);
 								}
-							}
-							else {
+							} else {
 								convertedModel.add(statement.getSubject(), statement.getPredicate(), backGroundResource);
 							}
 						}
@@ -88,24 +77,42 @@ public class Linker {
 		}
 		return convertedModel;
 	}
-	
-	boolean hasTheCorrectContext(Resource backGroundResource, Set<Resource> resolvedContexts, Model... backgroundModel) {
+
+	private void createIndex(Model... backgroundModel) {
+		this.index = new HashMap<>();
+		for (Model model : backgroundModel) {
+			List<Resource> backgroundSubjects = model.listSubjects().toList();
+			for (Resource resource : backgroundSubjects) {
+				if (resource.hasProperty(RDFS.label)) {
+					List<Statement> labelValues = resource.listProperties(RDFS.label).toList();
+					for (Statement statement : labelValues) {
+						String labelValue = statement.getObject().asLiteral().toString().toLowerCase();
+						Set<Resource> set = this.index.get(labelValue);
+						if (set == null) {
+							this.index.put(labelValue, set = new HashSet<Resource>());
+						}
+						set.add(resource);
+					}
+				}
+			}
+		}
+	}
+
+	private boolean hasTheCorrectContext(Resource backGroundResource, Set<Resource> resolvedContexts, Model... backgroundModel) {
 		for (Model model : backgroundModel) {
 			Resource resource = model.getResource(backGroundResource.getURI());
-			if(resource != null) {
+			if (resource != null) {
 				Statement resourceStm = resource.getProperty(RDF.type);
-				if(resourceStm != null) {
+				if (resourceStm != null) {
 					Resource object = resourceStm.getObject().asResource();
 					return resolvedContexts.contains(object);
 				}
 			}
 		}
-		
+
 		return false;
-		
 	}
 
-	
 	public void setContextualizable(Contextualizable contextualizable) {
 		this.contextualizable = contextualizable;
 	}

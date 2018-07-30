@@ -5,21 +5,21 @@
 @prefix sch: <http://schema.org/>.
 @prefix l2r: <http://l2r.com/>.
 
-<http://resource.com/001> a l2r:Resource;
+<http://background.com/aConcept> a l2r:Resource;
     rdfs:label "label1" ;
     rdfs:label "label2" ;
     rdfs:label "label3" ;
     rdfs:label "labeln" . 
     
     
- <http://resource.com/002> a l2r:Resource2;
+ <http://resource.com/0> a l2r:Resource;
     l2r:sameProperty "label1".
     
- <http://resource.com/003> a l2r:Resource2;
+ <http://resource.com/1> a l2r:Resource;
     l2r:sameProperty "label2".
     
- <http://resource.com/004> a l2r:Resource2;
+ <http://resource.com/2> a l2r:Resource;
     l2r:sameProperty "label3".
     
- <http://resource.com/005> a l2r:Resource2;
+ <http://resource.com/3> a l2r:Resource;
     l2r:sameProperty "labeln".

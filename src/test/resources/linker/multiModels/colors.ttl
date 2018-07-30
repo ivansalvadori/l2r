@@ -4,9 +4,8 @@
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
 @prefix sch: <http://schema.org/>.
 
-<http://example.com/Rockband> a owl:Class .
+<http://example.com/Color> a owl:Class .
 
-<http://example.com/rockband/Blue> a <http://example.com/Rockband>;
-    rdfs:label "Blue".
-    
+<http://example.com/Color/Blue> a <http://example.com/Color>;
+    rdfs:label "Blue".  
     

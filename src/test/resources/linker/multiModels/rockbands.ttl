@@ -3,9 +3,10 @@
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#>.
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
 @prefix sch: <http://schema.org/>.
-@prefix onto: <http://onto.com/>.
 
-<http://bikes.com/001> a onto:Bike;
-    onto:color <http://example.com/Color/Blue> ;
-    onto:brand "Caloi" . 
+<http://example.com/Rockband> a owl:Class .
 
+<http://example.com/Rockband/Blue> a <http://example.com/Rockband>;
+    rdfs:label "Blue".
+    
+    
