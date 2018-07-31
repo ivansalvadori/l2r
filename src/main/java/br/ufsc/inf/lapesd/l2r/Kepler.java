@@ -16,6 +16,7 @@ import org.apache.jena.vocabulary.RDF;
 public class Kepler implements Contextualizable {
 
 	private Map<Resource, Set<Resource>> contextualIndex = new HashMap<>();
+	private boolean inMemoryindex = true;
 
 	@Override
 	public Set<Resource> resolveContext(Resource property) {
@@ -37,10 +38,12 @@ public class Kepler implements Contextualizable {
 						if (resourcePropertyRange == null) {
 							continue;
 						}
-						if (this.contextualIndex.get(predicate) == null) {
-							contextualIndex.put(predicate, new HashSet<>());
+						if (this.isInMemoryindex()) {
+							createInMemoryIndex(predicate, resourcePropertyRange);
+						} else {
+
 						}
-						this.contextualIndex.get(predicate).add(resourcePropertyRange);
+
 					}
 				}
 			}
@@ -56,6 +59,21 @@ public class Kepler implements Contextualizable {
 			}
 		}
 		return null;
+	}
+
+	private void createInMemoryIndex(Property predicate, Resource resourcePropertyRange) {
+		if (this.contextualIndex.get(predicate) == null) {
+			contextualIndex.put(predicate, new HashSet<>());
+		}
+		this.contextualIndex.get(predicate).add(resourcePropertyRange);
+	}
+
+	private void createPersitentIndex(Property predicate, Resource resourcePropertyRange) {
+
+	}
+
+	public boolean isInMemoryindex() {
+		return inMemoryindex;
 	}
 
 }
