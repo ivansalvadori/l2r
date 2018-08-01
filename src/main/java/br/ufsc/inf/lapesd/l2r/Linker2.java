@@ -11,7 +11,6 @@ import org.apache.jena.graph.Triple;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.Statement;
-import org.apache.jena.riot.system.StreamRDF;
 import org.apache.jena.vocabulary.RDF;
 import org.apache.jena.vocabulary.RDFS;
 
@@ -21,12 +20,7 @@ public class Linker2 {
 	/*
 	 * Map of <literalObject, resourceURI(resource.label=literalObject)>
 	 */
-	private Map<String, Set<String>> index = new HashMap<>();
-
-	public StreamRDF link(StreamRDF rdfSource) {
-		System.out.println(this.index);
-		return null;
-	}
+	public Map<String, Set<String>> index = new HashMap<>();
 
 	public void index(Triple triple) {
 		Node subject = triple.getSubject();
