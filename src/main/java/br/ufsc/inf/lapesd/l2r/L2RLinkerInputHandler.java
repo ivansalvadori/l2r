@@ -23,7 +23,6 @@ public class L2RLinkerInputHandler implements StreamRDF {
 		for (Triple linkedTriple : linkedTriples) {
 			outputHandler.triple(linkedTriple);
 		}
-
 	}
 
 	@Override

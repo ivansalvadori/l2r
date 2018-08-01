@@ -1,5 +1,8 @@
 package br.ufsc.inf.lapesd.l2r.test;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -13,44 +16,46 @@ import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFDataMgr;
-import org.apache.jena.riot.system.StreamRDF;
-import org.apache.jena.riot.system.StreamRDFLib;
 import org.junit.Assert;
 import org.junit.Test;
 
-import br.ufsc.inf.lapesd.l2r.L2RIndexerInputHandler;
-import br.ufsc.inf.lapesd.l2r.L2RLinkerInputHandler;
-import br.ufsc.inf.lapesd.l2r.Linker;
+import br.ufsc.inf.lapesd.l2r.L2RDataMgr;
 import br.ufsc.inf.lapesd.l2r.Linker2;
 
 public class LinkerNoContextTest {
 
 	@Test
-	public void linkerNoConflictTest() throws IOException {
-
-		// create index
-		L2RIndexerInputHandler sourceRDF = new L2RIndexerInputHandler();
-		Linker2 linker = new Linker2();
-		sourceRDF.setLinker(linker);
-
-		try (InputStream in = getClass().getResourceAsStream("/linker/noConflict.ttl")) {
-			RDFDataMgr.parse(sourceRDF, in, Lang.TURTLE);
-		}
-
-		Model linkedModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
-		StreamRDF dest = StreamRDFLib.graph(linkedModel.getGraph());
-
-		L2RLinkerInputHandler linkerHandler = new L2RLinkerInputHandler();
-		linkerHandler.setOutputHandler(dest);
-		linkerHandler.setLinker(linker);
-		try (InputStream in = getClass().getResourceAsStream("/linker/noConflict.ttl")) {
-			RDFDataMgr.parse(linkerHandler, in, Lang.TURTLE);
-		}
-		dest.finish();
-
+	public void linkerNoConflictTestModelToModel() throws IOException {
 		Model model = ModelFactory.createDefaultModel();
 		try (InputStream in = getClass().getResourceAsStream("/linker/noConflict.ttl")) {
 			RDFDataMgr.read(model, in, Lang.TURTLE);
+		}
+
+		Linker2 linker = new Linker2();
+		L2RDataMgr.index(model, linker);
+
+		Model linkedModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
+		L2RDataMgr.link(linkedModel, model, linker);
+
+		Resource resultedResource = linkedModel.getResource("http://cars.com/001");
+		Property propertyToTest = linkedModel.createProperty("http://cars.com/color");
+		Statement statementToTest = resultedResource.getProperty(propertyToTest);
+		Resource resultedObject = statementToTest.getObject().asResource();
+		Resource expectedObject = linkedModel.getResource("http://example.com/background/Blue");
+		Assert.assertEquals(resultedObject, expectedObject);
+	}
+
+	@Test
+	public void linkerNoConflictTestFileToModel() throws IOException {
+		Linker2 linker = new Linker2();
+		Model linkedModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
+
+		try (InputStream in = getClass().getResourceAsStream("/linker/noConflict.ttl")) {
+			L2RDataMgr.index(in, Lang.TURTLE, linker);
+		}
+
+		try (InputStream in = getClass().getResourceAsStream("/linker/noConflict.ttl")) {
+			L2RDataMgr.link(linkedModel, in, Lang.TURTLE, linker);
 		}
 
 		Resource resultedResource = linkedModel.getResource("http://cars.com/001");
@@ -62,7 +67,72 @@ public class LinkerNoContextTest {
 	}
 
 	@Test
+	public void linkerNoConflictTestModelToFile() throws IOException {
+		Model model = ModelFactory.createDefaultModel();
+		try (InputStream in = getClass().getResourceAsStream("/linker/noConflict.ttl")) {
+			RDFDataMgr.read(model, in, Lang.TURTLE);
+		}
+		Linker2 linker = new Linker2();
+		L2RDataMgr.index(model, linker);
+
+		try (FileOutputStream fileOutputStream = new FileOutputStream("test.ttl")) {
+			L2RDataMgr.link(fileOutputStream, Lang.TURTLE, model, linker);
+		}
+
+		Model linkedModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
+		try (InputStream in = new FileInputStream("test.ttl")) {
+			RDFDataMgr.read(linkedModel, in, Lang.TURTLE);
+		}
+
+		File file = new File("test.ttl");
+		if (file.exists()) {
+			file.delete();
+		}
+
+		Resource resultedResource = linkedModel.getResource("http://cars.com/001");
+		Property propertyToTest = linkedModel.createProperty("http://cars.com/color");
+		Statement statementToTest = resultedResource.getProperty(propertyToTest);
+		Resource resultedObject = statementToTest.getObject().asResource();
+		Resource expectedObject = linkedModel.getResource("http://example.com/background/Blue");
+		Assert.assertEquals(resultedObject, expectedObject);
+	}
+
+	@Test
+	public void linkerNoConflictTestFileToFile() throws IOException {
+		Linker2 linker = new Linker2();
+
+		try (InputStream in = getClass().getResourceAsStream("/linker/noConflict.ttl")) {
+			L2RDataMgr.index(in, Lang.TURTLE, linker);
+		}
+
+		try (FileOutputStream fileOutputStream = new FileOutputStream("test.ttl")) {
+			try (InputStream in = getClass().getResourceAsStream("/linker/noConflict.ttl")) {
+				L2RDataMgr.link(fileOutputStream, Lang.TURTLE, in, Lang.TURTLE, linker);
+			}
+		}
+
+		Model linkedModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
+		try (InputStream in = new FileInputStream("test.ttl")) {
+			RDFDataMgr.read(linkedModel, in, Lang.TURTLE);
+		}
+
+		File file = new File("test.ttl");
+		if (file.exists()) {
+			file.delete();
+		}
+
+		Resource resultedResource = linkedModel.getResource("http://cars.com/001");
+		Property propertyToTest = linkedModel.createProperty("http://cars.com/color");
+		Statement statementToTest = resultedResource.getProperty(propertyToTest);
+		Resource resultedObject = statementToTest.getObject().asResource();
+		Resource expectedObject = linkedModel.getResource("http://example.com/background/Blue");
+		Assert.assertEquals(resultedObject, expectedObject);
+
+	}
+
+	@Test
 	public void linkerMultiModelsMultiResourcesTest() throws IOException {
+
 		Model colorModel = ModelFactory.createDefaultModel();
 		try (InputStream in = getClass().getResourceAsStream("/linker/multiModels/colors.ttl")) {
 			RDFDataMgr.read(colorModel, in, Lang.TURTLE);
@@ -78,8 +148,13 @@ public class LinkerNoContextTest {
 			RDFDataMgr.read(rockbandsModel, in, Lang.TURTLE);
 		}
 
-		Linker linker = new Linker();
-		Model linkedModel = linker.linkModel(carsModel, colorModel, rockbandsModel);
+		Linker2 linker = new Linker2();
+		L2RDataMgr.index(rockbandsModel, linker);
+		L2RDataMgr.index(colorModel, linker);
+		L2RDataMgr.index(carsModel, linker);
+
+		Model linkedModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
+		L2RDataMgr.link(linkedModel, carsModel, linker);
 
 		Property propertyToTest = linkedModel.createProperty("http://cars.com/color");
 
@@ -105,8 +180,11 @@ public class LinkerNoContextTest {
 			RDFDataMgr.read(modelWithSeveralLabels, in, Lang.TURTLE);
 		}
 
-		Linker linker = new Linker();
-		Model linkedModel = linker.linkModel(modelWithSeveralLabels);
+		Linker2 linker = new Linker2();
+		L2RDataMgr.index(modelWithSeveralLabels, linker);
+
+		Model linkedModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
+		L2RDataMgr.link(linkedModel, modelWithSeveralLabels, linker);
 
 		Property propertyToTest = linkedModel.createProperty("http://l2r.com/sameProperty");
 
@@ -130,8 +208,11 @@ public class LinkerNoContextTest {
 			RDFDataMgr.read(modelWithSeveralLabels, in, Lang.TURTLE);
 		}
 
-		Linker linker = new Linker();
-		Model linkedModel = linker.linkModel(modelWithSeveralLabels);
+		Linker2 linker = new Linker2();
+		L2RDataMgr.index(modelWithSeveralLabels, linker);
+
+		Model linkedModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
+		L2RDataMgr.link(linkedModel, modelWithSeveralLabels, linker);
 
 		Property propertyToTest = linkedModel.createProperty("http://l2r.com/sameProperty");
 		Resource resourceToTest = linkedModel.getResource("http://resource.com/0");
@@ -156,8 +237,11 @@ public class LinkerNoContextTest {
 			RDFDataMgr.read(model, in, Lang.TURTLE);
 		}
 
-		Linker linker = new Linker();
-		Model linkedModel = linker.linkModel(model);
+		Linker2 linker = new Linker2();
+		L2RDataMgr.index(model, linker);
+
+		Model linkedModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
+		L2RDataMgr.link(linkedModel, model, linker);
 
 		Model expectedModel = ModelFactory.createDefaultModel();
 		try (InputStream in = getClass().getResourceAsStream("/linker/noResourceToReplace.ttl")) {

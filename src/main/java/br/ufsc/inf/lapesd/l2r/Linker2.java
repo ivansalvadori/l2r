@@ -20,19 +20,19 @@ public class Linker2 {
 	/*
 	 * Map of <literalObject, resourceURI(resource.label=literalObject)>
 	 */
-	public Map<String, Set<String>> index = new HashMap<>();
+	private Map<String, Set<String>> index = new HashMap<>();
 
 	public void index(Triple triple) {
 		Node subject = triple.getSubject();
 		Node predicate = triple.getPredicate();
 		Node object = triple.getObject();
 		if (predicate.getURI().equals(RDFS.label.getURI())) {
-			Set<String> resourceURIsofTheLabel = this.index.get(object.toString());
+			Set<String> resourceURIsofTheLabel = this.index.get(object.getLiteralValue().toString().toLowerCase());
 			if (resourceURIsofTheLabel == null) {
 				resourceURIsofTheLabel = new HashSet<>();
+				this.index.put(object.getLiteralValue().toString().toLowerCase(), resourceURIsofTheLabel);
 			}
 			resourceURIsofTheLabel.add(subject.getURI());
-			this.index.put(object.getLiteralValue().toString().toLowerCase(), resourceURIsofTheLabel);
 		}
 	}
 
@@ -61,7 +61,8 @@ public class Linker2 {
 		return linkedTriples;
 	}
 
-	private boolean hasTheCorrectContext(Resource backGroundResource, Set<Resource> resolvedContexts, Model... backgroundModel) {
+	private boolean hasTheCorrectContext(Resource backGroundResource, Set<Resource> resolvedContexts,
+			Model... backgroundModel) {
 		for (Model model : backgroundModel) {
 			Resource resource = model.getResource(backGroundResource.getURI());
 			if (resource != null) {
