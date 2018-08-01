@@ -1,0 +1,20 @@
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix sch:  <http://schema.org/> .
+@prefix car:  <http://cars.com/> .
+
+<http://example.com/background/Color>
+        rdf:type  owl:Class .
+
+<http://example.com/background/Blue>
+        rdf:type    <http://example.com/background/Color> ;
+        rdfs:label  "Blue" .
+
+car:001  rdf:type            car:Car ;
+        car:plate            "001" ;
+        car:color            <http://example.com/background/Blue> ;
+        car:fabricationYear  "2000"^^xsd:int ;
+        car:brand            "Toyota"@en ;
+        car:value            "20000" .
