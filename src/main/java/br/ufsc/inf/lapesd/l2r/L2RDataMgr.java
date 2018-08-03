@@ -15,8 +15,8 @@ import org.apache.jena.riot.system.StreamRDFWriter;
 
 public class L2RDataMgr {
 
-	synchronized public static void index(Model model, Linker2 linker) {
-		L2RIndexerInputHandler indexerHandler = new L2RIndexerInputHandler();
+	synchronized public static void index(Model model, Linker linker) {
+		L2RIndexerHandler indexerHandler = new L2RIndexerHandler();
 		indexerHandler.setLinker(linker);
 
 		StringWriter out = new StringWriter();
@@ -32,13 +32,13 @@ public class L2RDataMgr {
 		}
 	}
 
-	synchronized public static void index(InputStream in, Lang lang, Linker2 linker) {
-		L2RIndexerInputHandler indexerHandler = new L2RIndexerInputHandler();
+	synchronized public static void index(InputStream in, Lang lang, Linker linker) {
+		L2RIndexerHandler indexerHandler = new L2RIndexerHandler();
 		indexerHandler.setLinker(linker);
 		RDFDataMgr.parse(indexerHandler, in, lang);
 	}
 
-	synchronized public static void link(Model destination, Model modelToLink, Linker2 linker) {
+	synchronized public static void link(Model destination, Model modelToLink, Linker linker) {
 		StreamRDF output = StreamRDFLib.graph(destination.getGraph());
 		StringWriter out = new StringWriter();
 		RDFDataMgr.write(out, modelToLink, Lang.TURTLE);
@@ -46,7 +46,7 @@ public class L2RDataMgr {
 		InputStream in;
 		try {
 			in = IOUtils.toInputStream(serializedModel, "UTF-8");
-			L2RLinkerInputHandler linkerHandler = new L2RLinkerInputHandler();
+			L2RLinkerHandler linkerHandler = new L2RLinkerHandler();
 			linkerHandler.setOutputHandler(output);
 			linkerHandler.setLinker(linker);
 			RDFDataMgr.parse(linkerHandler, in, Lang.TURTLE);
@@ -56,14 +56,14 @@ public class L2RDataMgr {
 		}
 	}
 
-	synchronized public static void link(OutputStream output, Lang lang, Model modelToLink, Linker2 linker) {
+	synchronized public static void link(OutputStream output, Lang lang, Model modelToLink, Linker linker) {
 		StringWriter out = new StringWriter();
 		RDFDataMgr.write(out, modelToLink, Lang.TURTLE);
 		String serializedModel = out.toString();
 		InputStream in;
 		try {
 			in = IOUtils.toInputStream(serializedModel, "UTF-8");
-			L2RLinkerInputHandler linkerHandler = new L2RLinkerInputHandler();
+			L2RLinkerHandler linkerHandler = new L2RLinkerHandler();
 			final StreamRDF outputHandler = StreamRDFWriter.getWriterStream(output, lang);
 			linkerHandler.setOutputHandler(outputHandler);
 			linkerHandler.setLinker(linker);
@@ -74,11 +74,11 @@ public class L2RDataMgr {
 		}
 	}
 
-	synchronized public static void link(Model destination, InputStream in, Lang inputLang, Linker2 linker) {
+	synchronized public static void link(Model destination, InputStream in, Lang inputLang, Linker linker) {
 		StreamRDF output = StreamRDFLib.graph(destination.getGraph());
 		StringWriter out = new StringWriter();
 		String serializedModel = out.toString();
-		L2RLinkerInputHandler linkerHandler = new L2RLinkerInputHandler();
+		L2RLinkerHandler linkerHandler = new L2RLinkerHandler();
 		linkerHandler.setOutputHandler(output);
 		linkerHandler.setLinker(linker);
 		RDFDataMgr.parse(linkerHandler, in, inputLang);
@@ -87,8 +87,8 @@ public class L2RDataMgr {
 	}
 
 	synchronized public static void link(OutputStream output, Lang outputLang, InputStream in, Lang inputLang,
-			Linker2 linker) {
-		L2RLinkerInputHandler linkerHandler = new L2RLinkerInputHandler();
+			Linker linker) {
+		L2RLinkerHandler linkerHandler = new L2RLinkerHandler();
 		final StreamRDF outputHandler = StreamRDFWriter.getWriterStream(output, outputLang);
 		linkerHandler.setOutputHandler(outputHandler);
 		linkerHandler.setLinker(linker);

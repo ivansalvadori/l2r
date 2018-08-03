@@ -1,16 +1,12 @@
 package br.ufsc.inf.lapesd.l2r;
 
-import java.util.Set;
-
 import org.apache.jena.graph.Triple;
 import org.apache.jena.riot.system.StreamRDF;
 import org.apache.jena.sparql.core.Quad;
 
-public class L2RLinkerInputHandler implements StreamRDF {
+public class L2RIndexerHandler implements StreamRDF {
 
-	private StreamRDF outputHandler;
-
-	private Linker2 linker;
+	private Linker linker;
 
 	@Override
 	public void start() {
@@ -19,10 +15,7 @@ public class L2RLinkerInputHandler implements StreamRDF {
 
 	@Override
 	public void triple(Triple triple) {
-		Set<Triple> linkedTriples = linker.link(triple);
-		for (Triple linkedTriple : linkedTriples) {
-			outputHandler.triple(linkedTriple);
-		}
+		linker.addToIndex(triple);
 	}
 
 	@Override
@@ -33,13 +26,13 @@ public class L2RLinkerInputHandler implements StreamRDF {
 
 	@Override
 	public void base(String base) {
-		outputHandler.base(base);
+		// TODO Auto-generated method stub
 
 	}
 
 	@Override
 	public void prefix(String prefix, String iri) {
-		outputHandler.prefix(prefix, iri);
+		// TODO Auto-generated method stub
 
 	}
 
@@ -49,12 +42,8 @@ public class L2RLinkerInputHandler implements StreamRDF {
 
 	}
 
-	public void setLinker(Linker2 linker) {
+	public void setLinker(Linker linker) {
 		this.linker = linker;
-	}
-
-	public void setOutputHandler(StreamRDF outputHandler) {
-		this.outputHandler = outputHandler;
 	}
 
 }

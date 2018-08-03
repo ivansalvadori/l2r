@@ -1,119 +1,95 @@
 package br.ufsc.inf.lapesd.l2r;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
-import org.apache.jena.ontology.OntModelSpec;
-import org.apache.jena.rdf.model.Model;
-import org.apache.jena.rdf.model.ModelFactory;
-import org.apache.jena.rdf.model.RDFNode;
-import org.apache.jena.rdf.model.Resource;
-import org.apache.jena.rdf.model.Statement;
-import org.apache.jena.vocabulary.RDF;
+import org.apache.jena.graph.Node;
+import org.apache.jena.graph.NodeFactory;
+import org.apache.jena.graph.Triple;
 import org.apache.jena.vocabulary.RDFS;
 
 public class Linker {
 
-	private Contextualizable contextualizable;
-	private Map<String, Set<Resource>> index = new HashMap<>();
+	private Contextualizer contextualizer;
+	private Index index = new InMemoryIndex();
+	private boolean contextEnabled;
+	private boolean persistentIndex = false;
 
-	public Model linkModel(Model model) {
-		this.createIndex(model);
-		Model linkedModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
-		linkedModel = this.convertLiteralToResource(model, model);
-		return linkedModel;
+	public void inMemoryIndex() {
+		this.index = new InMemoryIndex();
 	}
 
-	public Model linkModel(Model resourceModel, Model... backgroundModel) {
-		this.createIndex(backgroundModel);
-		Model linkedModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
-		linkedModel = this.convertLiteralToResource(resourceModel, backgroundModel);
-		return linkedModel;
+	public void persistentIndex() {
+		this.persistentIndex = true;
+		this.index = new PersistentIndex("linker");
+		if (contextEnabled) {
+			this.contextualizer = new Contextualizer();
+			this.contextualizer.persistentIndex();
+		}
 	}
 
-	private Model convertLiteralToResource(Model resourceModel, Model... backgroundModel) {
-		Model convertedModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
+	public void contextEnabled(boolean contextEnabled) {
+		this.contextEnabled = contextEnabled;
+		if (contextEnabled) {
+			this.contextualizer = new Contextualizer();
+			if (persistentIndex) {
+				this.contextualizer.persistentIndex();
+			}
+		}
+	}
 
-		List<Resource> targetSubjects = resourceModel.listSubjects().toList();
-		for (Resource resource : targetSubjects) {
-			List<Statement> properties = resource.listProperties().toList();
-			for (Statement statement : properties) {
-				RDFNode object = statement.getObject();
-				if (object.isLiteral()) {
-					if (statement.getPredicate().equals(RDFS.label)) {
-						convertedModel.add(statement);
-						continue;
-					}
-					String literalValue = object.asLiteral().toString().toLowerCase();
-					if (index.get(literalValue) != null) {
-						List<Resource> backGroundResources = new ArrayList<>(index.get(literalValue));
-						for (Resource backGroundResource : backGroundResources) {
-							if (this.contextualizable != null) {
-								contextualizable.createIndex(backgroundModel);
-								Set<Resource> resolvedContexts = this.contextualizable.resolveContext(statement.getPredicate());
-								if (resolvedContexts != null) {
-									boolean hasTheCorrectContext = hasTheCorrectContext(backGroundResource, resolvedContexts, backgroundModel);
-									if (hasTheCorrectContext) {
-										convertedModel.add(statement.getSubject(), statement.getPredicate(), backGroundResource);
-									}
-								} else {
-									convertedModel.add(statement.getSubject(), statement.getPredicate(), backGroundResource);
-								}
-							} else {
-								convertedModel.add(statement.getSubject(), statement.getPredicate(), backGroundResource);
+	public void addToIndex(Triple triple) {
+		Node subject = triple.getSubject();
+		Node predicate = triple.getPredicate();
+		Node object = triple.getObject();
+		if (predicate.getURI().equals(RDFS.label.getURI())) {
+			this.index.addToIndex(object.getLiteralValue().toString().toLowerCase(), subject.getURI());
+		}
+		if (this.contextualizer != null) {
+			this.contextualizer.addToIndex(triple);
+		}
+	}
+
+	public Set<Triple> link(Triple triple) {
+		Set<Triple> linkedTriples = new HashSet<>();
+		Node object = triple.getObject();
+		if (object.isLiteral()) {
+			if (triple.getPredicate().getURI().equals(RDFS.label.getURI())) {
+				linkedTriples.add(triple);
+				return linkedTriples;
+			}
+			Set<String> convertedObject = this.index.load(object.getLiteral().toString().toLowerCase());
+			if (convertedObject != null) {
+				for (String uri : convertedObject) {
+					Node newObject = NodeFactory.createURI(uri);
+					Triple linkedTriple = Triple.create(triple.getSubject(), triple.getPredicate(), newObject);
+
+					if (this.contextualizer != null) {
+						Set<String> validContext = this.contextualizer.loadContext(linkedTriple.getPredicate().getURI());
+						Set<String> types = contextualizer.getType(uri);
+						if (types == null) {
+							linkedTriples.add(linkedTriple);
+							continue;
+						}
+						for (String type : types) {
+							if (validContext == null) {
+								linkedTriples.add(linkedTriple);
+							} else if (validContext != null && validContext.contains(type)) {
+								linkedTriple = Triple.create(triple.getSubject(), triple.getPredicate(), newObject);
+								linkedTriples.add(linkedTriple);
+								continue;
 							}
 						}
 					} else {
-						convertedModel.add(statement);
-					}
-				} else {
-					convertedModel.add(statement);
-				}
-			}
-		}
-		return convertedModel;
-	}
-
-	private void createIndex(Model... backgroundModel) {
-		this.index = new HashMap<>();
-		for (Model model : backgroundModel) {
-			List<Resource> backgroundSubjects = model.listSubjects().toList();
-			for (Resource resource : backgroundSubjects) {
-				if (resource.hasProperty(RDFS.label)) {
-					List<Statement> labelValues = resource.listProperties(RDFS.label).toList();
-					for (Statement statement : labelValues) {
-						String labelValue = statement.getObject().asLiteral().toString().toLowerCase();
-						Set<Resource> set = this.index.get(labelValue);
-						if (set == null) {
-							this.index.put(labelValue, set = new HashSet<Resource>());
-						}
-						set.add(resource);
+						linkedTriples.add(linkedTriple);
 					}
 				}
+			} else {
+				linkedTriples.add(triple);
 			}
+		} else {
+			linkedTriples.add(triple);
 		}
-	}
-
-	private boolean hasTheCorrectContext(Resource backGroundResource, Set<Resource> resolvedContexts, Model... backgroundModel) {
-		for (Model model : backgroundModel) {
-			Resource resource = model.getResource(backGroundResource.getURI());
-			if (resource != null) {
-				Statement resourceStm = resource.getProperty(RDF.type);
-				if (resourceStm != null) {
-					Resource object = resourceStm.getObject().asResource();
-					return resolvedContexts.contains(object);
-				}
-			}
-		}
-
-		return false;
-	}
-
-	public void setContextualizable(Contextualizable contextualizable) {
-		this.contextualizable = contextualizable;
+		return linkedTriples;
 	}
 }

@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.jena.ontology.OntModelSpec;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.Property;
@@ -15,11 +16,12 @@ import org.apache.jena.riot.RDFDataMgr;
 import org.junit.Assert;
 import org.junit.Test;
 
-import br.ufsc.inf.lapesd.l2r.Contextualizable;
-import br.ufsc.inf.lapesd.l2r.Kepler;
+import br.ufsc.inf.lapesd.l2r.L2RDataMgr;
 import br.ufsc.inf.lapesd.l2r.Linker;
 
 public class LinkerContextTest {
+
+	Linker linker = new Linker();
 
 	@Test
 	public void linkerNoConflictTest() throws IOException {
@@ -27,15 +29,17 @@ public class LinkerContextTest {
 		try (InputStream in = getClass().getResourceAsStream("/linker/noConflict.ttl")) {
 			RDFDataMgr.read(model, in, Lang.TURTLE);
 		}
-		Linker linker = new Linker();
-		Contextualizable contextualizable = new Kepler();
-		linker.setContextualizable(contextualizable);
 
-		Model linkedModel = linker.linkModel(model);
+		linker.contextEnabled(true);
+		L2RDataMgr.index(model, linker);
+
+		Model linkedModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
+		L2RDataMgr.link(linkedModel, model, linker);
 
 		Resource resultedResource = linkedModel.getResource("http://cars.com/001");
 		Property propertyToTest = linkedModel.createProperty("http://cars.com/color");
 		Statement statementToTest = resultedResource.getProperty(propertyToTest);
+
 		Resource resultedObject = statementToTest.getObject().asResource();
 		Resource expectedObject = linkedModel.getResource("http://example.com/background/Blue");
 		Assert.assertEquals(resultedObject, expectedObject);
@@ -58,24 +62,23 @@ public class LinkerContextTest {
 			RDFDataMgr.read(rockbandsModel, in, Lang.TURTLE);
 		}
 
-		Linker linker = new Linker();
+		linker.contextEnabled(true);
+		L2RDataMgr.index(colorModel, linker);
+		L2RDataMgr.index(carsModel, linker);
+		L2RDataMgr.index(rockbandsModel, linker);
 
-		Model linkedModel = linker.linkModel(carsModel, colorModel, rockbandsModel);
+		Model linkedModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
+		L2RDataMgr.link(linkedModel, carsModel, linker);
 
 		Property propertyToTest = linkedModel.createProperty("http://cars.com/color");
 
 		Resource resultedResource = linkedModel.getResource("http://cars.com/001");
 		List<Statement> resultedResources = resultedResource.listProperties(propertyToTest).toList();
-		Resource expectedObject0 = linkedModel.getResource("http://example.com/Color/Blue");
-		Resource expectedObject1 = linkedModel.getResource("http://example.com/Rockband/Blue");
+		Resource expectedObject = linkedModel.getResource("http://example.com/Color/Blue");
 
-		Assert.assertTrue(resultedResources.size() == 2);
-
-		Resource resultedObject0 = resultedResources.get(0).getObject().asResource();
-		Resource resultedObject1 = resultedResources.get(1).getObject().asResource();
-
-		Assert.assertTrue(expectedObject0.equals(resultedObject0) || expectedObject0.equals(resultedObject1));
-		Assert.assertTrue(expectedObject1.equals(resultedObject0) || expectedObject1.equals(resultedObject1));
+		Assert.assertTrue(resultedResources.size() == 1);
+		Resource resultedObject = resultedResources.get(0).getObject().asResource();
+		Assert.assertTrue(expectedObject.equals(resultedObject));
 	}
 
 	@Test
@@ -85,10 +88,13 @@ public class LinkerContextTest {
 			RDFDataMgr.read(model, in, Lang.TURTLE);
 		}
 
-		Linker linker = new Linker();
-		Contextualizable contextualizable = new Kepler();
-		linker.setContextualizable(contextualizable);
-		Model linkedModel = linker.linkModel(model);
+		linker.contextEnabled(true);
+		L2RDataMgr.index(model, linker);
+
+		Model linkedModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
+		L2RDataMgr.link(linkedModel, model, linker);
+
+		RDFDataMgr.write(System.out, linkedModel, Lang.TURTLE);
 
 		Property propertyToTest = linkedModel.createProperty("http://onto.com/color");
 		Resource resultedResource = linkedModel.getResource("http://cars.com/001");
@@ -105,8 +111,13 @@ public class LinkerContextTest {
 			RDFDataMgr.read(modelWithSeveralLabels, in, Lang.TURTLE);
 		}
 
-		Linker linker = new Linker();
-		Model linkedModel = linker.linkModel(modelWithSeveralLabels);
+		linker.contextEnabled(true);
+		L2RDataMgr.index(modelWithSeveralLabels, linker);
+
+		Model linkedModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
+		L2RDataMgr.link(linkedModel, modelWithSeveralLabels, linker);
+
+		RDFDataMgr.write(System.out, linkedModel, Lang.TURTLE);
 
 		Property propertyToTest = linkedModel.createProperty("http://l2r.com/sameProperty");
 
@@ -130,8 +141,13 @@ public class LinkerContextTest {
 			RDFDataMgr.read(modelWithSeveralLabels, in, Lang.TURTLE);
 		}
 
-		Linker linker = new Linker();
-		Model linkedModel = linker.linkModel(modelWithSeveralLabels);
+		linker.contextEnabled(true);
+		L2RDataMgr.index(modelWithSeveralLabels, linker);
+
+		Model linkedModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
+		L2RDataMgr.link(linkedModel, modelWithSeveralLabels, linker);
+
+		RDFDataMgr.write(System.out, linkedModel, Lang.TURTLE);
 
 		Property propertyToTest = linkedModel.createProperty("http://l2r.com/sameProperty");
 		Resource resourceToTest = linkedModel.getResource("http://resource.com/0");
@@ -155,13 +171,53 @@ public class LinkerContextTest {
 			RDFDataMgr.read(model, in, Lang.TURTLE);
 		}
 
-		Linker linker = new Linker();
-		Model linkedModel = linker.linkModel(model);
+		linker.contextEnabled(true);
+		L2RDataMgr.index(model, linker);
+
+		Model linkedModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
+		L2RDataMgr.link(linkedModel, model, linker);
+
+		RDFDataMgr.write(System.out, linkedModel, Lang.TURTLE);
 
 		Model expectedModel = ModelFactory.createDefaultModel();
 		try (InputStream in = getClass().getResourceAsStream("/linker/noResourceToReplace.ttl")) {
 			RDFDataMgr.read(expectedModel, in, Lang.TURTLE);
 		}
 		Assert.assertTrue(linkedModel.isIsomorphicWith(expectedModel));
+	}
+
+	@Test
+	public void linkerSaoPauloVSPalmeiras() throws IOException {
+		Model model = ModelFactory.createDefaultModel();
+		try (InputStream in = getClass().getResourceAsStream("/linker/timeECidade.ttl")) {
+			RDFDataMgr.read(model, in, Lang.TURTLE);
+		}
+
+		linker.contextEnabled(true);
+		L2RDataMgr.index(model, linker);
+
+		Model linkedModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
+		L2RDataMgr.link(linkedModel, model, linker);
+		RDFDataMgr.write(System.out, linkedModel, Lang.TURTLE);
+
+		Resource resultedResource1 = linkedModel.getResource("http://pessoa.com/001");
+
+		Property propertyToTest1 = linkedModel.createProperty("http://onto.com/cidadeNatal");
+		List<Statement> resultedResources1 = resultedResource1.listProperties(propertyToTest1).toList();
+
+		Property propertyToTest2 = linkedModel.createProperty("http://onto.com/torcePara");
+		List<Statement> resultedResources2 = resultedResource1.listProperties(propertyToTest2).toList();
+
+		Assert.assertTrue(resultedResources1.size() == 1);
+
+		Resource expectedObject0 = linkedModel.getResource("http://example.com/cidade/SaoPaulo");
+		Resource expectedObject1 = linkedModel.getResource("http://example.com/time/SaoPaulo");
+
+		Resource resultedObject0 = resultedResources1.get(0).getObject().asResource();
+		Resource resultedObject1 = resultedResources2.get(0).getObject().asResource();
+
+		Assert.assertTrue(expectedObject0.equals(resultedObject0));
+		Assert.assertTrue(expectedObject1.equals(resultedObject1));
+
 	}
 }

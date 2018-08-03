@@ -11,3 +11,7 @@
     car:fabricationYear "2000" ;
     car:brand "Toyota" ;
     car:value "20000" . 
+    
+    
+<http://cars.com/002> a car:Car;
+    car:color <http://example.com/Color/Blue> .

@@ -14,6 +14,6 @@
     car:value "20000" . 
 
 <http://bikes.com/001> a onto:Bike;
-    onto:color <http://example.com/Color/Blue> ;
+    onto:color <http://example.com/background/Blue> ;
     onto:brand "Caloi" . 
 

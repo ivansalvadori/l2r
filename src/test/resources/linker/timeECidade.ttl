@@ -1,0 +1,31 @@
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>.
+@prefix owl: <http://www.w3.org/2002/07/owl#>.
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#>.
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
+@prefix sch: <http://schema.org/>.
+@prefix onto: <http://onto.com/>.
+
+<http://example.com/Time> a owl:Class .
+
+<http://example.com/time/SaoPaulo> a <http://example.com/Time>;
+    rdfs:label "São Paulo".
+    
+<http://example.com/time/Palmeiras> a <http://example.com/Time>;
+    rdfs:label "Palmeiras".
+    
+<http://example.com/Cidade> a owl:Class .
+
+<http://example.com/cidade/SaoPaulo> a <http://example.com/Cidade>;
+    rdfs:label "são paulo".
+    
+<http://example.com/cidade/Rio> a <http://example.com/Cidade>;
+    rdfs:label "Rio".
+    
+<http://pessoa.com/001> a onto:Pessoa;
+    onto:cidadeNatal "são Paulo" ;
+    onto:torcePara "são Paulo" . 
+
+<http://pessoa.com/002> a onto:Pessoa;
+    onto:cidadeNatal <http://example.com/cidade/Rio> ;
+    onto:torcePara <http://example.com/time/Palmeiras> . 
+

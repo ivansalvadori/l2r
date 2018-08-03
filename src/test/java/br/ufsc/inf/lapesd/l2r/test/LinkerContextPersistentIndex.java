@@ -1,8 +1,6 @@
 package br.ufsc.inf.lapesd.l2r.test;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -16,18 +14,33 @@ import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFDataMgr;
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
 import br.ufsc.inf.lapesd.l2r.L2RDataMgr;
 import br.ufsc.inf.lapesd.l2r.Linker;
 
-public class LinkerNoContextTest {
+public class LinkerContextPersistentIndex {
 
 	Linker linker = new Linker();
 
+	@Before
+	public void before() {
+	}
+
+	@After
+	public void after() {
+		new File("index.db").delete();
+		this.linker = new Linker();
+		this.linker.contextEnabled(true);
+		this.linker.persistentIndex();
+		new File("index.db").delete();
+	}
+
 	@Test
-	public void linkerNoConflictTestModelToModel() throws IOException {
+	public void linkerNoConflictTest() throws IOException {
 		Model model = ModelFactory.createDefaultModel();
 		try (InputStream in = getClass().getResourceAsStream("/linker/noConflict.ttl")) {
 			RDFDataMgr.read(model, in, Lang.TURTLE);
@@ -41,95 +54,14 @@ public class LinkerNoContextTest {
 		Resource resultedResource = linkedModel.getResource("http://cars.com/001");
 		Property propertyToTest = linkedModel.createProperty("http://cars.com/color");
 		Statement statementToTest = resultedResource.getProperty(propertyToTest);
+
 		Resource resultedObject = statementToTest.getObject().asResource();
 		Resource expectedObject = linkedModel.getResource("http://example.com/background/Blue");
 		Assert.assertEquals(resultedObject, expectedObject);
 	}
 
 	@Test
-	public void linkerNoConflictTestFileToModel() throws IOException {
-		Model linkedModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
-
-		try (InputStream in = getClass().getResourceAsStream("/linker/noConflict.ttl")) {
-			L2RDataMgr.index(in, Lang.TURTLE, linker);
-		}
-
-		try (InputStream in = getClass().getResourceAsStream("/linker/noConflict.ttl")) {
-			L2RDataMgr.link(linkedModel, in, Lang.TURTLE, linker);
-		}
-
-		Resource resultedResource = linkedModel.getResource("http://cars.com/001");
-		Property propertyToTest = linkedModel.createProperty("http://cars.com/color");
-		Statement statementToTest = resultedResource.getProperty(propertyToTest);
-		Resource resultedObject = statementToTest.getObject().asResource();
-		Resource expectedObject = linkedModel.getResource("http://example.com/background/Blue");
-		Assert.assertEquals(resultedObject, expectedObject);
-	}
-
-	@Test
-	public void linkerNoConflictTestModelToFile() throws IOException {
-		Model model = ModelFactory.createDefaultModel();
-		try (InputStream in = getClass().getResourceAsStream("/linker/noConflict.ttl")) {
-			RDFDataMgr.read(model, in, Lang.TURTLE);
-		}
-
-		L2RDataMgr.index(model, linker);
-
-		try (FileOutputStream fileOutputStream = new FileOutputStream("test.ttl")) {
-			L2RDataMgr.link(fileOutputStream, Lang.TURTLE, model, linker);
-		}
-
-		Model linkedModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
-		try (InputStream in = new FileInputStream("test.ttl")) {
-			RDFDataMgr.read(linkedModel, in, Lang.TURTLE);
-		}
-
-		File file = new File("test.ttl");
-		if (file.exists()) {
-			file.delete();
-		}
-
-		Resource resultedResource = linkedModel.getResource("http://cars.com/001");
-		Property propertyToTest = linkedModel.createProperty("http://cars.com/color");
-		Statement statementToTest = resultedResource.getProperty(propertyToTest);
-		Resource resultedObject = statementToTest.getObject().asResource();
-		Resource expectedObject = linkedModel.getResource("http://example.com/background/Blue");
-		Assert.assertEquals(resultedObject, expectedObject);
-	}
-
-	@Test
-	public void linkerNoConflictTestFileToFile() throws IOException {
-		try (InputStream in = getClass().getResourceAsStream("/linker/noConflict.ttl")) {
-			L2RDataMgr.index(in, Lang.TURTLE, linker);
-		}
-
-		try (FileOutputStream fileOutputStream = new FileOutputStream("test.ttl")) {
-			try (InputStream in = getClass().getResourceAsStream("/linker/noConflict.ttl")) {
-				L2RDataMgr.link(fileOutputStream, Lang.TURTLE, in, Lang.TURTLE, linker);
-			}
-		}
-
-		Model linkedModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
-		try (InputStream in = new FileInputStream("test.ttl")) {
-			RDFDataMgr.read(linkedModel, in, Lang.TURTLE);
-		}
-
-		File file = new File("test.ttl");
-		if (file.exists()) {
-			file.delete();
-		}
-
-		Resource resultedResource = linkedModel.getResource("http://cars.com/001");
-		Property propertyToTest = linkedModel.createProperty("http://cars.com/color");
-		Statement statementToTest = resultedResource.getProperty(propertyToTest);
-		Resource resultedObject = statementToTest.getObject().asResource();
-		Resource expectedObject = linkedModel.getResource("http://example.com/background/Blue");
-		Assert.assertEquals(resultedObject, expectedObject);
-
-	}
-
-	@Test
-	public void linkerMultiModelsMultiResourcesTest() throws IOException {
+	public void linkerMultiModelsMultiResourcesConflictTest() throws IOException {
 
 		Model colorModel = ModelFactory.createDefaultModel();
 		try (InputStream in = getClass().getResourceAsStream("/linker/multiModels/colors.ttl")) {
@@ -146,9 +78,10 @@ public class LinkerNoContextTest {
 			RDFDataMgr.read(rockbandsModel, in, Lang.TURTLE);
 		}
 
-		L2RDataMgr.index(rockbandsModel, linker);
+		linker.contextEnabled(true);
 		L2RDataMgr.index(colorModel, linker);
 		L2RDataMgr.index(carsModel, linker);
+		L2RDataMgr.index(rockbandsModel, linker);
 
 		Model linkedModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
 		L2RDataMgr.link(linkedModel, carsModel, linker);
@@ -157,21 +90,45 @@ public class LinkerNoContextTest {
 
 		Resource resultedResource = linkedModel.getResource("http://cars.com/001");
 		List<Statement> resultedResources = resultedResource.listProperties(propertyToTest).toList();
-		Resource expectedObject0 = linkedModel.getResource("http://example.com/Color/Blue");
-		Resource expectedObject1 = linkedModel.getResource("http://example.com/Rockband/Blue");
+		Resource expectedObject = linkedModel.getResource("http://example.com/Color/Blue");
 
-		Assert.assertTrue(resultedResources.size() == 2);
+		Assert.assertTrue(resultedResources.size() == 1);
+		Resource resultedObject = resultedResources.get(0).getObject().asResource();
+		Assert.assertTrue(expectedObject.equals(resultedObject));
+	}
 
-		Resource resultedObject0 = resultedResources.get(0).getObject().asResource();
-		Resource resultedObject1 = resultedResources.get(1).getObject().asResource();
+	@Test
+	public void linkerMultiModelsMultiResourcesSingleConflitSolvedTest() throws IOException {
 
-		Assert.assertTrue(expectedObject0.equals(resultedObject0) || expectedObject0.equals(resultedObject1));
-		Assert.assertTrue(expectedObject1.equals(resultedObject0) || expectedObject1.equals(resultedObject1));
+		new File("index.db").delete();
+		this.linker = new Linker();
+		this.linker.contextEnabled(true);
+		this.linker.persistentIndex();
+		new File("index.db").delete();
 
+		Model model = ModelFactory.createDefaultModel();
+		try (InputStream in = getClass().getResourceAsStream("/linker/singleConflict.ttl")) {
+			RDFDataMgr.read(model, in, Lang.TURTLE);
+		}
+
+		L2RDataMgr.index(model, linker);
+
+		Model linkedModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
+		L2RDataMgr.link(linkedModel, model, linker);
+
+		RDFDataMgr.write(System.out, linkedModel, Lang.TURTLE);
+
+		Property propertyToTest = linkedModel.createProperty("http://onto.com/color");
+		Resource resultedResource = linkedModel.getResource("http://cars.com/001");
+		Resource resultedObject = resultedResource.getProperty(propertyToTest).getObject().asResource();
+		Resource expectedObject = linkedModel.getResource("http://example.com/Color/Blue");
+
+		Assert.assertTrue(expectedObject.equals(resultedObject));
 	}
 
 	@Test
 	public void linkerBackgroundMultilabelTargetSingleLiteralTest() throws IOException {
+
 		Model modelWithSeveralLabels = ModelFactory.createDefaultModel();
 		try (InputStream in = getClass().getResourceAsStream("/linker/backgroundMultilabelTargetSingleLiteral.ttl")) {
 			RDFDataMgr.read(modelWithSeveralLabels, in, Lang.TURTLE);
@@ -204,7 +161,6 @@ public class LinkerNoContextTest {
 			RDFDataMgr.read(modelWithSeveralLabels, in, Lang.TURTLE);
 		}
 
-		Linker linker = new Linker();
 		L2RDataMgr.index(modelWithSeveralLabels, linker);
 
 		Model linkedModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
@@ -223,7 +179,6 @@ public class LinkerNoContextTest {
 			Resource resultedObject = statement.getObject().asResource();
 			Assert.assertTrue(expectedResourceList.contains(resultedObject));
 		}
-
 	}
 
 	@Test
@@ -245,33 +200,4 @@ public class LinkerNoContextTest {
 		Assert.assertTrue(linkedModel.isIsomorphicWith(expectedModel));
 	}
 
-	@Test
-	public void linkerSaoPauloVSPalmeiras() throws IOException {
-		Model model = ModelFactory.createDefaultModel();
-		try (InputStream in = getClass().getResourceAsStream("/linker/timeECidade.ttl")) {
-			RDFDataMgr.read(model, in, Lang.TURTLE);
-		}
-
-		L2RDataMgr.index(model, linker);
-
-		Model linkedModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
-		L2RDataMgr.link(linkedModel, model, linker);
-		RDFDataMgr.write(System.out, linkedModel, Lang.TURTLE);
-
-		Property propertyToTest = linkedModel.createProperty("http://onto.com/cidadeNatal");
-
-		Resource resultedResource = linkedModel.getResource("http://pessoa.com/001");
-		List<Statement> resultedResources = resultedResource.listProperties(propertyToTest).toList();
-		Resource expectedObject0 = linkedModel.getResource("http://example.com/time/SaoPaulo");
-		Resource expectedObject1 = linkedModel.getResource("http://example.com/cidade/SaoPaulo");
-
-		Assert.assertTrue(resultedResources.size() == 2);
-
-		Resource resultedObject0 = resultedResources.get(0).getObject().asResource();
-		Resource resultedObject1 = resultedResources.get(1).getObject().asResource();
-
-		Assert.assertTrue(expectedObject0.equals(resultedObject0) || expectedObject0.equals(resultedObject1));
-		Assert.assertTrue(expectedObject1.equals(resultedObject0) || expectedObject1.equals(resultedObject1));
-
-	}
 }
