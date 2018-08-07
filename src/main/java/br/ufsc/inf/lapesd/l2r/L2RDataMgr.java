@@ -86,8 +86,7 @@ public class L2RDataMgr {
 
 	}
 
-	synchronized public static void link(OutputStream output, Lang outputLang, InputStream in, Lang inputLang,
-			Linker linker) {
+	synchronized public static void link(OutputStream output, Lang outputLang, InputStream in, Lang inputLang, Linker linker) {
 		L2RLinkerHandler linkerHandler = new L2RLinkerHandler();
 		final StreamRDF outputHandler = StreamRDFWriter.getWriterStream(output, outputLang);
 		linkerHandler.setOutputHandler(outputHandler);

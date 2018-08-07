@@ -104,7 +104,7 @@ public class LinkerContextPersistentIndex {
 		this.linker = new Linker();
 		this.linker.contextEnabled(true);
 		this.linker.persistentIndex();
-		new File("index.db").delete();
+		// new File("index.db").delete();
 
 		Model model = ModelFactory.createDefaultModel();
 		try (InputStream in = getClass().getResourceAsStream("/linker/singleConflict.ttl")) {
@@ -115,8 +115,6 @@ public class LinkerContextPersistentIndex {
 
 		Model linkedModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
 		L2RDataMgr.link(linkedModel, model, linker);
-
-		RDFDataMgr.write(System.out, linkedModel, Lang.TURTLE);
 
 		Property propertyToTest = linkedModel.createProperty("http://onto.com/color");
 		Resource resultedResource = linkedModel.getResource("http://cars.com/001");
